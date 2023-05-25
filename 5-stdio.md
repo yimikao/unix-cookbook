@@ -25,3 +25,17 @@ Three types of buffering:
 - Fully buffered
 - Line buffered
 - Unbuffered
+
+### Opening Stream
+
+`fopen` and it's variants open a standard I/O stream \
+
+### Closing Stream
+
+`fclose` is used \
+Any buffered output data is flushed before file is closed. Any input data that may be buffered is discarded. If the standard I/O library had automatically allocated a buffer for the stream, that buffer is released.
+When a process terminates normally, either by calling the exit function directly or by returning from the main function, all standard I/O streams with unwritten buffered data are flushed and all open standard I/O streams are closed.
+
+### Reading and Writing Stream
+
+
