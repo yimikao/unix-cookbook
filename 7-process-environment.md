@@ -43,3 +43,53 @@ The only way a program can be executed by the kernel is if one of the exec funct
 ## Environment List
 
 ## Memory Layout of a C Program
+
+C program consists of the ffl pieces:
+
+- Text Segment:
+consisting of instructions the CPU executes. Usually, the text segment is sharable so that only a single copy needs to be in memory for frequently executed programs, such as text editors, the C compiler, the shells etc. It is `READ-ONLY`.
+
+- Initialized Data Segment:
+AKA Data Segment. Contains vars specifically initialized in the program, e.g \
+
+
+```c
+int maxv = 100; 
+``` 
+This declaration **appearing outside any function** causes this variable to be stored in the initialized data segment with its initial value.
+
+- Uninitialized Data Segment:
+AKA "bss segment" . Data in this segment is initialized by the kernel to arithmetic 0 or null pointers before the program starts executing. 
+
+```c
+int sum[100];
+```
+
+This decalration **appearing outside any function** causes this variable to be stored in the uninitialized data segment.
+
+- Stack:
+Where automatic variables are stored, along with information that is saved each time a function is called. **Each time a function is called, the address of where to return to and certain information about the caller’s environment, such as some of the machine registers, are saved on the stack. The newly called function then allocates room on the stack for its automatic and temporary variables.** This is how recursive functions in C can work. Each time a recursive function calls itself, a new stack frame is used, so one set of variables doesn’t interfere with the variables from another instance of the function.
+
+- Heap:
+where dynamic memory allocation usually takes place. located btw UDS and Stack.
+
+
+## Typical Memory Layout
+
+(Low Address) Text -> IDS -> UDS -> Heap -> Stack ->  (High Address)
+
+## Shared Libs
+
+## Memory Allocation
+
+ISO C three functions: `malloc`, `calloc`, `realloc`. \
+`free` call deallocated the space pointed to. \
+This freed space **is usually put into a pool of available memory** and can be allocated in a later call to one of the three alloc functions. \
+They are implemented with `sbrk()` syscall, which expands(or contracts) the heap of the process. Although `sbrk` can expand or contract the memory of a process, most versions of `malloc` and `free` never decrease their memory size. The space that we free is available for a later allocation, but the freed space is not usually returned to the kernel; instead, that space is kept in the malloc pool.
+
+## Environment Variables
+
+## setjmp() and longjmp() Functions
+
+## getrlimit() and setrlimit() Functions
+
