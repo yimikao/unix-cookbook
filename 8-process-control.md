@@ -45,7 +45,7 @@ The parent anf chilf **share the same file offset.** This is because if child wr
 \
 Besides open files, other properties of parent are inherited by the child; process group ID, session ID etc \
 \
-***Differences between parent and child are:** diff fork return values, process IDs, parent procees ID, child's tms_utime and its variants, file locks set by parent are not inherited, pending alarms and pending signals are emptied. \
+**Differences between parent and child are:** diff fork return values, process IDs, parent procees ID, child's tms_utime and its variants, file locks set by parent are not inherited, pending alarms and pending signals are emptied. \
 \
 **`fork` can fail for two reasons:**
 1. too many processes in system
@@ -54,3 +54,33 @@ Besides open files, other properties of parent are inherited by the child; proce
 **Two uses for fork:**
 1. Process want to duplicate itself e.g hand an operation to a child e.g network request handling
 2. Process intends to execute a different program.
+
+## vFork Function
+
+## exit Function
+
+`exit` is associated with **normal program termination**. \
+\
+a program can terminate normally in five ways:
+1. `return` from `main()
+2. calling `exit()`. it calls all regiustered **exit handlers** by calling `atexit` and closing all standard I/O streams. It is defined by ISO C and Because ISO C does not deal with file descriptors, multiple processes (parents and children), and job control, the definition of this function is incomplete for a UNIX system.
+3. calling `_exit` or `_Exit`. On UNIX, they are synonymoud and do not flush standard IO streams. `_exit` is called by `exit` and handles the UNIX system-specific details since its defined by POSIX.1
+4. `return` from start routine of last thread in process. The prcess exits with termination status of 0, not return value of thread.
+5. calling `pthread_exit` frm the last thread in process. exit status same as above.
+
+**Abnormal termination occurs in three forms:**
+1. calling `abort`. Its a special case of next form, as it generates the `SIGABRT` sugnal.
+2. process recieves certain signals. sig could be gened by process e.g abort, other process, or kernel (e.g zero division by process)
+3. last thread responds to **cancelllation request** from another.
+
+
+**Regardless of how process terminates, the same code in the kernel is eventually executed. The code closes all open descriptors for the process, releases the memory it was using etc** \
+\
+For all termination cases, the terminating process notifies parent how it did so, in any case, parent can get the termination status from `wait` or `waitpid`:
+1. For the exit functions, by passing an exit status as argument.
+2. For abnormal, kernel generates a termination status.
+
+Diff btw exit status(arg to exit or main return) and termination status is **exit stat is converted to term stat by kernel at `_exit` in `exit`** \
+\
+If parent teminates before child, `init` process inherits child (kernel changes parent ID to 1). In the other case, kernel keeps child info for when parent calls `wait` (unzombieing a child process. NOTE: init also calls wait for its created and inherited procs). \
+
