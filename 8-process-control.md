@@ -82,5 +82,21 @@ For all termination cases, the terminating process notifies parent how it did so
 
 Diff btw exit status(arg to exit or main return) and termination status is **exit stat is converted to term stat by kernel at `_exit` in `exit`** \
 \
-If parent teminates before child, `init` process inherits child (kernel changes parent ID to 1). In the other case, kernel keeps child info for when parent calls `wait` (unzombieing a child process. NOTE: init also calls wait for its created and inherited procs). \
+If parent teminates before child, `init` process inherits child (kernel changes parent ID to 1). In the other case, kernel keeps child info for when parent calls `wait` (unzombieing a child process. NOTE: init also calls wait for its created and inherited procs).
+
+## wait and waitpid Functions
+waitpid is a variant of wait. We tell which child terminated, because process ID is returned by them. 
+
+```c
+#include <sys/wait.h>
+pid_t wait(int *status);
+```
+\
+**When a process terminates normally/abnormally kernel notifies the parent by sending the `SIGCHLD` signal to the parent.** Child termination is async so is signal. Parent can ignore or provide signal handler function. \
+\
+Process that calls `wait[pid]` can:
+1. block if all its children are still running (has nada to report)
+2. return at once with termination status of a child, if a child has terminated and is waiting for its termination status to be fetched
+3. return at once with error if no child
+
 
