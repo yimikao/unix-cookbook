@@ -160,3 +160,61 @@ The problem with this type of loop, called **polling**, is it wastes CPU time, a
 To avoid Race COnditions and polling, some "form" of signalling (signals or forms of interprocess commu - IPC) is required between processes. \
 \
 For a parent-child relation, after `fork`, both may have something to do e.g the parent could update a record in a log file with the child’s process ID, and the child might have to create a file for the parent. In this example, we require that each process tell the other when it has finished its initial set of operations, and that each wait for the other to complete, before heading off on its own.
+
+## exec Functions
+
+When a process calls one of `exec`s, the process is replaced completely by new program. \
+\
+**Process ID doesnt change, cos a new proc isnt created, but replaced (its text, data, heap and stack segments) with a new program from disk**. \
+\
+**Though process ID doesnt change after an `exec`, but the new program inherits additional properties from calling process:**
+- proc ID and parents
+- root dir, cwd
+- file locks etc
+
+**The handling of open files depends on value of `close-on-exec` flag for each descriptor. Default is to leave desc open across exec unless specifically set `c-o-e` using `fcntl`. POSIX.1 requires that open directory streams be closed across an exec. This is normally done by the `opendir` calling `fcntl` to set d flag.**\
+\
+In many UNIX impls, only `execve` is a syscall, others are lib funcs that call execve.
+
+###########
+Revisit page 254 on using execle and execlp 
+###########
+
+## Changing User IDs and Group IDs
+
+## Interpreter Files (Reread)
+
+All contemporary UNIX systems support interpreter files. These files are text files that begin with a line of the form \
+    `#!` *`pathname [ optional-argument ]`*  e.g `#!/bin/sh`
+
+## system Function (Reread)
+
+For executing a command string from within a program. For example, assume that we want to put a time-and-date stamp into a certain file. We could use the functions described in Section 6.10 to do this: call time to get the current calendar time, then call localtime to convert it to a broken-down time, then call strftime to format the result, and finally write the result to the file. It is much easier, however, to say: \
+`system("date > file");` \
+ISOC defines it, but its operation is system dependent. POSIX.1 includes the `system` interface, expanding on the ISO C definition to descibe its behavior in the POSIX environment.
+
+```c
+int system(const char *cmdstring)
+```
+It is implemented by calling `fork`, `exec` and `waitpid`.
+
+## Process Accounting
+
+When enabled, the kernel writes an accounting record each time a process terminates.
+
+## User Identification
+
+## Process Scheduling (Reread)
+
+Historically, the UNIX system provided processes with only coarse control over their scheduling priority. The scheduling policy and priority were determined by kernel. A process could choose to run with lower priority by adjusting its nice value (thus a process could be "nice" and reduce its share of the CPU by adjusting its nice value). Only a priviledged process was allowed to increase its scheduling priority.
+
+## Process Times
+
+**three times that we can measure: wall clock time, user CPU time, and system CPU time.** Any process can call the `times` function to obtain these values for itself and any terminated children.
+
+## Summary
+There are only a few functions to master in UNIX process control:
+1. `fork`
+2. `exec` family
+3. `_exit`
+4. `wait` and `waitpid`
