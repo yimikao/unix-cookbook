@@ -76,7 +76,7 @@ a program can terminate normally in five ways:
 
 **Regardless of how process terminates, the same code in the kernel is eventually executed. The code closes all open descriptors for the process, releases the memory it was using etc** \
 \
-For all termination cases, the terminating process notifies parent how it did so, in any case, parent can get the termination status from `wait` or `waitpid`:
+For all termination cases, the terminating process notifies parent how it did so, in any case, parent can get the termination status from `wait` or `waitpid`. Parent can also get further termination info through d status using some macros:
 1. For the exit functions, by passing an exit status as argument.
 2. For abnormal, kernel generates a termination status.
 
@@ -100,3 +100,63 @@ Process that calls `wait[pid]` can:
 3. return at once with error if no child
 
 
+**Traditionally, the int status these two func retunr has been defined by the implementation, with certain bits indicating d exit stat (for normal return), other bits the signal number (abnormal return), one bit indicating whether a core file was generated etc \
+POSIX.1 specifies that the termination staus is to be looked at using various macros in <sys/wait.h>. \
+FOur exclusive macros tells how the process terminated, based on which of these is true, other macros are used to obtain the exit status, signal number and the like.
+1. WIFEXITED(status)
+2. WIFSIGNALED(status)
+3. WIFSTOPPED(status)
+4. WIFCONTINUED(status)
+
+```c
+// PRINTING DESCRIPTION OF EXIT STATUS
+#include <sys/wait.h>
+void pr_exit(int status)
+{
+    if (WIFEXITED(status))
+        printf("normal termination, exit status = %d\n",
+        WEXITSTATUS(status));
+    else if (WIFISIGNALED(status))
+        printf("abnormal termination, signal number = %d%s\n", WTERMSIG(status),
+#ifdef WCOREDUMP  
+        WCOREDUMP(status) ? " (core file generated)" : "");
+#else
+       "");
+#endif
+    else if (WIFSTOPPED(status))
+        printf("child stopped, signal number = %d\n",
+            WSTOPSIG(status))
+}
+
+
+$ ./a.out
+normal termination, exit status = 7
+abnormal termination, signal number = 6 (core file generated)
+
+abnormal termination, signal number = 8 (core file generated)
+```
+
+we print the signal number from `WTERMSIG`. We can look at the `<signal.h>` to verify that `SIGABRT` has a value of `6` and `SIGFPE` has `8`. There's a portable way to map a signal number to a descriptive name in Section 10.22.
+
+## waitid Function
+
+## wait3 and wait4 FUnctions
+
+## Race Conditions
+Occurs when multiple processes are trying to do something with shared data and the final outcome depends on the order in which the processes run. \
+\
+`fork` is a breeding ground for RC, if any of the logic after it either explicitly/implicitly depends on whether the parent/child runs first.\
+\
+We cant predict which runs first (even after `sleep`), and also what happens afther it starts running depends on d system load and kernel schduling algo. \
+\
+**A process that wants to wait for a child to terminate mujst call one of the `wait`s. If a proc wants to wait for parent to terminate, a loop is used:
+```c
+// this concept is called `polling`
+while(getppid() != 1 )
+     sleep(1);
+```
+The problem with this type of loop, called **polling**, is it wastes CPU time, as the caller is awakened every second to test the condition. \
+\
+To avoid Race COnditions and polling, some "form" of signalling (signals or forms of interprocess commu - IPC) is required between processes. \
+\
+For a parent-child relation, after `fork`, both may have something to do e.g the parent could update a record in a log file with the child’s process ID, and the child might have to create a file for the parent. In this example, we require that each process tell the other when it has finished its initial set of operations, and that each wait for the other to complete, before heading off on its own.
