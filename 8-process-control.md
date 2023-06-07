@@ -101,12 +101,12 @@ Process that calls `wait[pid]` can:
 
 
 **Traditionally, the int status these two func retunr has been defined by the implementation, with certain bits indicating d exit stat (for normal return), other bits the signal number (abnormal return), one bit indicating whether a core file was generated etc \
-POSIX.1 specifies that the termination staus is to be looked at using various macros in <sys/wait.h>. \
+POSIX.1 specifies that the termination staus is to be looked at using various macros in <sys/wait.h>.** \
 FOur exclusive macros tells how the process terminated, based on which of these is true, other macros are used to obtain the exit status, signal number and the like.
-1. WIFEXITED(status)
-2. WIFSIGNALED(status)
-3. WIFSTOPPED(status)
-4. WIFCONTINUED(status)
+1. `WIFEXITED(status)`
+2. `WIFSIGNALED(status)`
+3. `WIFSTOPPED(status)`
+4. `WIFCONTINUED(status)`
 
 ```c
 // PRINTING DESCRIPTION OF EXIT STATUS
@@ -149,7 +149,7 @@ Occurs when multiple processes are trying to do something with shared data and t
 \
 We cant predict which runs first (even after `sleep`), and also what happens afther it starts running depends on d system load and kernel schduling algo. \
 \
-**A process that wants to wait for a child to terminate mujst call one of the `wait`s. If a proc wants to wait for parent to terminate, a loop is used:
+**A process that wants to wait for a child to terminate mujst call one of the `wait`s. If a proc wants to wait for parent to terminate, a loop is used:**
 ```c
 // this concept is called `polling`
 while(getppid() != 1 )
