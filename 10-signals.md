@@ -105,3 +105,59 @@ Most of the funcs that are not incuded are not because \
 Even if we call a function among the above listed from a sig handler, there is only one `errno` variable per thread (recall discussion of errno and threads in sec 1.7) and we might potentially modify its value. COnsider a sig handler that is invoked right after `main` has et `errno`. If the signal handler calls `read`, for example, this call can change the value of `errno`, wiping out the value that was just stored in `main`. Therefore, as a general rule, when calling the functions listed above from a signal handler, we should save and restore `errno`. **Note that a commonly caught signal is SIGCHLD, and its signal handler usually calls one of the `wait` functions. All `wait` funcs can change  `errno`** \
 \
 Note that `longjmp` and `siglongjmp` are missing from d funcs cos the signal may have occured while the main routine was updating a data structure in a nonreentrant way. This data structure could be left half updated if we call `siglongjmp` instead of returning from the signal handler. If it is going to do such things as update global data structures, as we describe here, while catching dignals that cause `sigsetjmp` to be executed,,an application needs to block the signals while updating the data structures.
+
+## SIGCLD Semantics
+
+Two signals that continually generate confusion are `SIGCLD` and `SIGCHLD`. \
+\
+The
+
+## Reliable-Signal Terminology and Semantics
+
+## kill and raise Functions
+
+`kill` function sends a signal to a process or a group of processes. The `raise` fuction allows a process to send a signal to itself. \
+\
+```c
+#include <signal.h>
+int kill(pid_t pid, int signo)
+int raise(int signo)
+```
+
+`raise(signo)` is equivalent to `kill(getpid(), signo)` \
+\
+There are four diff conditions for the *pid* argument to `kill`.
+1. `pid > 0`, the signal is sent to the process whose process ID is *pid*
+2. `pid == 0`, The signal is sent to all processes whose process group ID equals the process group ID of the sender and for which the sender has permission to send the signal. Note that the term **all processes** excludes an implemetation-defined set of system processes. For most UNIX systems, this set of syetem processes include the kernel processes and `init` (pid`).
+3. `pid < 0`, the signal is sent to all processes whose process group ID equals the absolute value of `pid` and for which the sender has permission to send the signal. Again, the set of all processes exludes certain system processes, as described earlier.
+4. `pid == -1`, the signal is sent to all processes on the system for which the sender has permission to send the signal. As before, the set of processes excludes certain system processes.
+
+As we've said, a process needs permission to send a signal to another process. The superuser can send a signal to any process. For other users, the basic rule is that the real or effective user ID of the sender has to equal the real or effective user ID of the receiver. If the implementation supports `_POSIX_SAVED_IDS`, the saved set-user-ID if of the receiver i checked instead of its effective user ID. One special case for the perimission testing also exists: if the signal being sent is `SIGCONT`, a process can send it to any other process in the same session. \
+\
+POSIX.1 defines signal number 0 as the null signal. IF the *signo* argumet is 0, then the normal error checking is performed by `kill`, but no signal is sent. This technique is often used to determine if a specific process still exists. If we send the process the null signal and it doesnt exist, `kill` returns -1  and `errno` is set to `ESRCH`. No that UNIX systems recycle process IDs after sme time, so the existense of a process with a given process ID doesnt necessarily mean that it's the process that you think it is. \
+\
+Also **the test for process existense is not atomic**. By the time that `kill` returns the answer to the caller, the process in question might have exited, so the answer is of limited value. \
+\
+If the call to `kill` causes the signal to be generated for the calling process and if the signal is not blocked, either `signo` or some other pending, unblocked signal is delivered to the process before `kill` returns. (Additional conditions occur with threads- 12.8)
+
+## alarm and pause Functions
+
+`alarm` allows us to set a timer that will expiore at a specified time in the future. When the timer expires, the SIGALRM signal is generated. If we ignore or dont catch this signal, its default action is to terminate the process.
+
+## Signal Sets
+
+A data type to rep multiple signals - **a signal set**. \
+\
+We use this data type with functions as `sigprocmask` to tell kernel not to allow any of the signals in the set to occur. The number of diff signals can exceed num of bits in an integer, so we cant use an integer to rep the set with one bit per signal. POSIX.1 defines the data type `sigset_t` to contain a signal set and the ffl five functions to manipulate signal sets - `sigemptyset` etc
+
+## sigprocmask Function
+
+The signal mask of a process is the set of signals currently blocked from delivery to that process. A process can examine its signal mask, change its signal mask, or perform both operations in one step by calling the following function.
+
+## sigpending Function
+
+`sigpending` returns trhe set of signals that are blocked from delivery and currently pending for the calling process. The set of signals is returned through the *set* of argument.
+
+## sigaction Function
+
+`sigaction` allows us to examine or modify(or both) the action associated with a particular signal. This function supersedes the `signal` function from earlier releases of the UNIX System. `signal` can be implemeneted with `sigaction`.
