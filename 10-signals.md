@@ -89,4 +89,19 @@ When a process calls `fork`, the child inherits the parent's signal dispositions
 
 ## Reentrant Functions
 
-When a signal that is being caught is handled by a process, the normal sequence of instructions being executed by the process is temporarily interrupted by the signal. 
+When a signal that is being caught is handled by a process, the normal sequence of instructions being executed by the process is temporarily interrupted by the signal handler. \
+The process then continues executing, but the instructions in the signal handler are now executed. If the signal handler returns (instead of calling `exit` or `longjmp`, for example), then the normal sequence of instructions that the process was executing when the signal was caught continues executing. (this is similar to what happens when a hardware interrupt occurs.) But in the signal handler, we cant tell where the process was executing when the signal was caught. WHat if the porocess was in the middle of allocating additional memory on its heap using `malloc`, and we call `malloc` from the signal handler? Or if the process was in the middle of a call to a function, such as `getpwnam`, the info returned to the normal caller can get overwritten with the info returned to the sigal handler. \
+\
+The Single UNIX spec specifies **the func that are guaranteed to be safe to call form within a sig handler. These are reentrant and are called *async-signal safe* by the Spec**. Besides being reentrant, **they block any signals during operation if delivery of a signal might cause inconsistencies**. \
+\
+These functions are: \
+`abort`, `accept`, `close`, `bind` etc **(others are on page 365/331)** \
+\
+Most of the funcs that are not incuded are not because \
+1. they are known to use static data structures
+2. they call `malloc` or `free`
+3. they are part of standard I/O library. Most implementations in the std I/O library use global data structures in a nonreentrant way. **Note that even though we call `printf` from signal handlers in some of our examples, it is not guaranteed to produce expected results, since the signal handler can interrupt a call to `print` from main program. \
+\
+Even if we call a function among the above listed from a sig handler, there is only one `errno` variable per thread (recall discussion of errno and threads in sec 1.7) and we might potentially modify its value. COnsider a sig handler that is invoked right after `main` has et `errno`. If the signal handler calls `read`, for example, this call can change the value of `errno`, wiping out the value that was just stored in `main`. Therefore, as a general rule, when calling the functions listed above from a signal handler, we should save and restore `errno`. **Note that a commonly caught signal is SIGCHLD, and its signal handler usually calls one of the `wait` functions. All `wait` funcs can change  `errno`** \
+\
+Note that `longjmp` and `siglongjmp` are missing from d funcs cos the signal may have occured while the main routine was updating a data structure in a nonreentrant way. This data structure could be left half updated if we call `siglongjmp` instead of returning from the signal handler. If it is going to do such things as update global data structures, as we describe here, while catching dignals that cause `sigsetjmp` to be executed,,an application needs to block the signals while updating the data structures.
